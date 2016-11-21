@@ -330,7 +330,7 @@ func (n *NasaClient) fetchData(offset int) ([]string, error) {
 			month = month[0:3]
 		}
 		// build status message
-		statusMsg := fmt.Sprintf("A #%s #asteroid %s, Ø ~%.2f km and ~%s km/s is coming close to #%s on %s. %02d (details here %s)",
+		statusMsg := fmt.Sprintf("🔭 a #%s #asteroid %s, Ø ~%.2f km and ~%s km/s is coming close to #%s on %s. %02d (details here %s)",
 			freeze.GetRandomElement(asteroidsQualificativeAdjective),
 			name,
 			(object.EstimatedDiameter.Kilometers.EstimatedDiameterMin+object.EstimatedDiameter.Kilometers.EstimatedDiameterMax)/2,
