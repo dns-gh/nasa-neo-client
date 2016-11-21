@@ -249,7 +249,7 @@ func (n *NasaClient) getDangerousRocks(offset int) ([]object, error) {
 	if err != nil {
 		return nil, err
 	}
-	dangerous := map[int64]object{}
+	dangerousByTimestamp := map[int64][]object{}
 	keys := []int64{}
 	for _, v := range rocks.NearEarthObjects {
 		if len(v) != 0 {
@@ -259,8 +259,10 @@ func (n *NasaClient) getDangerousRocks(offset int) ([]object, error) {
 						object.CloseApproachData[0].OrbitingBody == n.body {
 						t := parseTime(object.CloseApproachData[0].CloseApproachDate, nasaTimeFormat)
 						timestamp := t.UnixNano()
-						dangerous[timestamp] = object
-						keys = append(keys, timestamp)
+						if len(dangerousByTimestamp[timestamp]) == 0 {
+							keys = append(keys, timestamp)
+						}
+						dangerousByTimestamp[timestamp] = append(dangerousByTimestamp[timestamp], object)
 					}
 				}
 			}
@@ -269,7 +271,9 @@ func (n *NasaClient) getDangerousRocks(offset int) ([]object, error) {
 	quickSort(keys)
 	objects := []object{}
 	for _, key := range keys {
-		objects = append(objects, dangerous[key])
+		for _, object := range dangerousByTimestamp[key] {
+			objects = append(objects, object)
+		}
 	}
 	return objects, nil
 }
@@ -280,13 +284,25 @@ func (n *NasaClient) sleep() {
 	}
 }
 
+func match(s string) string {
+	i := strings.Index(s, "(")
+	if i >= 0 {
+		temp := s[i:]
+		j := strings.Index(temp, ")")
+		if j >= 0 {
+			return temp[1:j]
+		}
+	}
+	return ""
+}
+
 func (n *NasaClient) fetchData(offset int) ([]string, error) {
 	log.Println("[nasa] checking nasa rocks...")
 	current, err := n.getDangerousRocks(offset)
 	if err != nil {
 		return nil, err
 	}
-	log.Println("[nasa] found", len(current), "potential rocks to tweet")
+	log.Println("[nasa] found", len(current), "potential dangerous rocks")
 	// TODO only merge and save asteroids once they are tweeted ?
 	diff, err := n.update(current)
 	if err != nil {
@@ -294,21 +310,17 @@ func (n *NasaClient) fetchData(offset int) ([]string, error) {
 	}
 	formatedDiff := []string{}
 	for _, object := range diff {
-		freeze.Sleep(maxRandTimeSleepBetweenRequests)
+		n.sleep()
 		closeData := object.CloseApproachData[0]
 		approachDate := parseTime(closeData.CloseApproachDate, nasaTimeFormat)
 		// extract lisible name
-		name := object.Name
-		parts := strings.SplitN(object.Name, " ", 2)
-		if len(parts) == 2 {
-			partsBis := strings.SplitN(parts[1], ")", 2)
-			if len(partsBis) > 0 {
-				name = partsBis[0]
-			}
+		name := match(object.Name)
+		if len(name) == 0 {
+			name = object.Name
 		}
 		// extract lisible speed
 		speed := closeData.RelativeVelocity.KilometersPerSecond
-		parts = strings.Split(speed, ".")
+		parts := strings.Split(speed, ".")
 		if len(parts) == 2 && len(parts[1]) > 2 {
 			speed = parts[0] + "." + parts[1][0:1]
 		}
