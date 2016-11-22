@@ -38,38 +38,31 @@ var (
 )
 
 // NasaClient represents the web Client.
-type NasaClient struct {
+type NasaNeoClient struct {
 	apiKey      string
 	firstOffset int
 	offset      int
-	poll        time.Duration
 	path        string
 	body        string // orbiting body to watch
 	debug       bool
 }
 
-func (n *NasaClient) hasDefaultKey() bool {
+func (n *NasaNeoClient) hasDefaultKey() bool {
 	return n.apiKey == nasaAPIDefaultKey
 }
 
-// GetPoll returns the polling frequency of the nasa client to the nasa API.
-func (n *NasaClient) GetPoll() time.Duration {
-	return n.poll
-}
-
-// MakeNasaClient creates a web client to make http request
+// MakeNasaNeoClient creates a web client to make http request
 // to the Neo Nasa API: https://api.nasa.gov/api.html#NeoWS
-func MakeNasaClient(firstOffset, offset int, poll time.Duration, path, body string, debug bool) *NasaClient {
+func MakeNasaNeoClient(firstOffset, offset int, path, body string, debug bool) *NasaNeoClient {
 	log.Println("[nasa] making nasa client")
 	apiKey := os.Getenv("NASA_API_KEY")
 	if len(apiKey) == 0 {
 		apiKey = nasaAPIDefaultKey
 	}
-	return &NasaClient{
+	return &NasaNeoClient{
 		apiKey:      apiKey,
 		firstOffset: firstOffset,
 		offset:      offset,
-		poll:        poll,
 		path:        path,
 		body:        body,
 		debug:       debug,
@@ -136,7 +129,7 @@ type SpaceRocks struct {
 	NearEarthObjects map[string][]object `json:"near_earth_objects"`
 }
 
-func (n *NasaClient) load() ([]object, error) {
+func (n *NasaNeoClient) load() ([]object, error) {
 	objects := &[]object{}
 	if _, err := os.Stat(n.path); os.IsNotExist(err) {
 		tojson.Save(n.path, objects)
@@ -167,7 +160,7 @@ func merge(previous, current []object) ([]object, []object) {
 	return merged, diff
 }
 
-func (n *NasaClient) update(current []object) ([]object, error) {
+func (n *NasaNeoClient) update(current []object) ([]object, error) {
 	previous, err := n.load()
 	if err != nil {
 		return nil, err
@@ -177,7 +170,7 @@ func (n *NasaClient) update(current []object) ([]object, error) {
 	return diff, nil
 }
 
-func (n *NasaClient) fetchRocks(days int) (*SpaceRocks, error) {
+func (n *NasaNeoClient) fetchRocks(days int) (*SpaceRocks, error) {
 	if days > 7 {
 		return nil, fmt.Errorf(fetchMaxSizeError)
 	} else if days < -7 {
@@ -244,7 +237,7 @@ func quickSort(values []int64) {
 	sort(values, 0, len(values)-1)
 }
 
-func (n *NasaClient) getDangerousRocks(offset int) ([]object, error) {
+func (n *NasaNeoClient) getDangerousRocks(offset int) ([]object, error) {
 	rocks, err := n.fetchRocks(offset)
 	if err != nil {
 		return nil, err
@@ -278,7 +271,7 @@ func (n *NasaClient) getDangerousRocks(offset int) ([]object, error) {
 	return objects, nil
 }
 
-func (n *NasaClient) sleep() {
+func (n *NasaNeoClient) sleep() {
 	if !n.debug {
 		freeze.Sleep(maxRandTimeSleepBetweenRequests)
 	}
@@ -296,7 +289,7 @@ func match(s string) string {
 	return ""
 }
 
-func (n *NasaClient) fetchData(offset int) ([]string, error) {
+func (n *NasaNeoClient) fetchData(offset int) ([]string, error) {
 	log.Println("[nasa] checking nasa rocks...")
 	current, err := n.getDangerousRocks(offset)
 	if err != nil {
@@ -345,11 +338,11 @@ func (n *NasaClient) fetchData(offset int) ([]string, error) {
 }
 
 // FirstFetch fetches NEO Nasa information with the first offset
-func (n *NasaClient) FirstFetch() ([]string, error) {
+func (n *NasaNeoClient) FirstFetch() ([]string, error) {
 	return n.fetchData(n.firstOffset)
 }
 
 // Fetch fetches NEO Nasa information with default offset
-func (n *NasaClient) Fetch() ([]string, error) {
+func (n *NasaNeoClient) Fetch() ([]string, error) {
 	return n.fetchData(n.offset)
 }
