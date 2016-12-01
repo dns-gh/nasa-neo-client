@@ -2,8 +2,8 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/dns-gh/nasa-neo-client)](https://goreportcard.com/report/github.com/dns-gh/nasa-neo-client)
 
-[![GoDoc](https://godoc.org/github.com/dns-gh/nasa-neo-client?status.png)]
-(https://godoc.org/github.com/dns-gh/nasa-neo-client)
+[![GoDoc](https://godoc.org/github.com/dns-gh/nasa-neo-client/nasaclient?status.png)]
+(https://godoc.org/github.com/dns-gh/nasa-neo-client/nasaclient)
 
 Nasa web client to make http requests to the NEO API: https://api.nasa.gov/api.html#NeoWS
 
